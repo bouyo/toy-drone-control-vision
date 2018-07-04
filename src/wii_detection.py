@@ -3,21 +3,26 @@
 
 import rospy
 import numpy as np
-from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Vector3
+from wiimote.msg import State
+from wiimote.msg import IrSourceInfo
 
 
 class WiiDetection:
 
     def __init__(self):
 
-        self.started = False
+        self.wii1_detected = False
+        self.wii2_detected = False
 
         # CONSTANT DEFINITIONS
         self.pix_width = 1024
         self.pix_height = 768
-        self.wii_1_pose = np.array([5, 0, 0])
-        self.wii_2_pose = np.array([0, -5, 0])
+
+        # camera position in meters
+        self.wii_1_pose = np.array([0.585, -1.68, 1.885])
+        self.wii_2_pose = np.array([-0.585, -1.68, 1.885])
+
         self.wii_1_rotation = np.array([[0, 0, 0],
                                        [0, 0, 0],
                                        [0, 0, 0]])
@@ -26,60 +31,83 @@ class WiiDetection:
                                        [0, 0, 0]])
 
         # camera coord rotation (z-y-x)
-        self.camera_1_rot = np.array([np.pi/2, 0, -np.pi/2])
-        self.camera_2_rot = np.array([np.pi/2, 0, 0])
+        self.camera_1_rot = np.array([np.deg2rad(132), np.deg2rad(20), np.deg2rad(180)])
+        self.camera_2_rot = np.array([np.deg2rad(132), np.deg2rad(-20), np.deg2rad(180)])
 
         # set the rotation matrix for each wii
         self.wii_1_rotation = self.set_camera(self.camera_1_rot)
         self.wii_2_rotation = self.set_camera(self.camera_2_rot)
 
         # Needed variables
-        self.wii_1_pix = np.array([0, 0])
-        self.wii_2_pix = np.array([0, 0])
-        self.detection_line_1 = np.array([0., 0., 0.])
-        self.detection_line_2 = np.array([0., 0., 0.])
-        self.detected_point = Vector3(0., 0., 0.)
+        self.wii_1_pixs = np.array([[-1., -1.],
+                                   [-1., -1.],
+                                   [-1., -1.]])
+        self.wii_2_pixs = np.array([[-1., -1.],
+                                   [-1., -1.],
+                                   [-1., -1.]])
+        self.detection_line_1 = np.array([[0., 0., 0.],
+                                         [0., 0., 0.],
+                                         [0., 0., 0.]])
+        self.detection_line_2 = np.array([[0., 0., 0.],
+                                         [0., 0., 0.],
+                                         [0., 0., 0.]])
+        self.detected_point = np.array([Vector3(0., 0., 0.),
+                                        Vector3(0., 0., 0.),
+                                        Vector3(0., 0., 0.)])
+        self.drone_coord = Vector3(0., 0., 0.)
 
         # SUBS N PUBS
-        self.wii_subscriber = rospy.Subscriber(
-            "wii/pose",
-            Quaternion,
-            self.wii_cb)
+        self.wii_subscriber1 = rospy.Subscriber(
+            "wiimote/state1",
+            State,
+            self.wii_cb1)
+
+        self.wii_subscriber2 = rospy.Subscriber(
+            "wiimote/state2",
+            State,
+            self.wii_cb2)
 
         self.drone_position = rospy.Publisher(
             'drone_position',
             Vector3)
 
         # Detection rate
-        self.detection_rate = 5
+        self.detection_rate = 2
         self.rate = rospy.Rate(self.detection_rate)
 
     def set_camera(self, rot):
         a = rot[0]
         b = rot[1]
         c = rot[2]
-        Rz = np.array([[np.cos(c),  np.sin(c), 0.],
-                      [-np.sin(c), np.cos(c), 0.],
-                      [0.,         0.,        1.]])
+        Rz = np.array([[np.cos(c), -np.sin(c), 0.],
+                       [np.sin(c),  np.cos(c), 0.],
+                       [0.,         0.,        1.]])
 
-        Ry = np.array([[np.cos(b),  0., -np.sin(b)],
-                      [0.,         1.,        0.],
-                      [np.sin(b),  0.,  np.cos(b)]])
+        Ry = np.array([[np.cos(b),  0., np.sin(b)],
+                       [0.,         1.,        0.],
+                       [-np.sin(b), 0., np.cos(b)]])
 
-        Rx = np.array([[1.,         0.,        0.],
-                      [0.,  np.cos(a), np.sin(a)],
-                      [0., -np.sin(a), np.cos(a)]])
+        Rx = np.array([[1.,         0.,         0.],
+                       [0.,  np.cos(a), -np.sin(a)],
+                       [0.,  np.sin(a),  np.cos(a)]])
 
         R = np.dot(Rz, np.dot(Ry, Rx))
 
         return R
 
-    def wii_cb(self, data):
-        self.started = True
-        self.wii_1_pix[0] = data.x
-        self.wii_1_pix[1] = data.y
-        self.wii_2_pix[0] = data.z
-        self.wii_2_pix[1] = data.w
+    def wii_cb1(self, data):
+        self.wii1_detected = True
+        detect_array = data.ir_tracking
+        for i in range(0, 2):
+            self.wii_1_pixs[i][0] = detect_array[i].x
+            self.wii_1_pixs[i][1] = detect_array[i].y
+
+    def wii_cb2(self, data):
+        self.wii2_detected = True
+        detect_array = data.ir_tracking
+        for i in range(0, 3):
+            self.wii_2_pixs[i][0] = detect_array[i].x
+            self.wii_2_pixs[i][1] = detect_array[i].y
 
     def pix2vect(self, u, v):
         """
@@ -90,8 +118,8 @@ class WiiDetection:
         :return: vector end  in camera local coords
         """
 
-        alpha = np.deg2rad(((self.pix_width / 2) - u) * 0.04)
-        beta = np.deg2rad(((self.pix_height / 2) - v) * 0.04)
+        alpha = np.deg2rad(((self.pix_width / 2) - u) * 0.043)
+        beta = np.deg2rad((v - (self.pix_height / 2)) * 0.05)
         x = np.sin(alpha) * np.cos(beta)
         z = np.cos(alpha) * np.cos(beta)
         y = np.sin(beta)
@@ -141,7 +169,7 @@ class WiiDetection:
 
     def run(self):
 
-        while not self.started:
+        while not (self.wii1_detected and self.wii2_detected):
             print("WiiDetection.run() - Waiting for first measurement.")
             rospy.sleep(1)
 
@@ -150,19 +178,86 @@ class WiiDetection:
         while not rospy.is_shutdown():
             self.rate.sleep()
 
-            local_1 = self.pix2vect(self.wii_1_pix[0], self.wii_1_pix[1])
-            local_2 = self.pix2vect(self.wii_2_pix[0], self.wii_2_pix[1])
+            local_1 = np.array([[0., 0., 0.],
+                               [0., 0., 0.],
+                               [0., 0., 0.]])
 
-            global_1 = self.vect2coord(self.wii_1_pose, self.wii_1_rotation, local_1)
-            global_2 = self.vect2coord(self.wii_2_pose, self.wii_2_rotation, local_2)
+            local_2 = np.array([[0., 0., 0.],
+                               [0., 0., 0.],
+                               [0., 0., 0.]])
 
-            point1, point2, _ = self.line_distance(self.wii_1_pose, global_1, self.wii_2_pose, global_2)
+            global_1 = np.array([[0., 0., 0.],
+                                [0., 0., 0.],
+                                [0., 0., 0.]])
 
-            self.detected_point.x = (point1[0] + point2[0]) / 2
-            self.detected_point.y = (point1[1] + point2[1]) / 2
-            self.detected_point.z = (point1[2] + point2[2]) / 2
+            global_2 = np.array([[0., 0., 0.],
+                                [0., 0., 0.],
+                                [0., 0., 0.]])
 
-            self.drone_position.publish(self.detected_point)
+            self.detected_point = np.array([Vector3(0., 0., 0.),
+                                            Vector3(0., 0., 0.),
+                                            Vector3(0., 0., 0.)])
+
+            point1 = np.array([[0., 0., 0.],
+                              [0., 0., 0.],
+                              [0., 0., 0.]])
+            point2 = np.array([[0., 0., 0.],
+                              [0., 0., 0.],
+                              [0., 0., 0.]])
+            distance = np.array([10., 10., 10.])
+            found = np.array([False, False, False])
+            leds_detected = 0
+
+            for i in range(0, 3):
+                if self.wii_1_pixs[i][0] != -1:
+                    local_1[i] = self.pix2vect(self.wii_1_pixs[i][0], self.wii_1_pixs[i][1])
+                    global_1[i] = self.vect2coord(self.wii_1_pose, self.wii_1_rotation, local_1[i])
+
+                if self.wii_2_pixs[i][0] != -1:
+                    local_2[i] = self.pix2vect(self.wii_2_pixs[i][0], self.wii_2_pixs[i][1])
+                    global_2[i] = self.vect2coord(self.wii_2_pose, self.wii_2_rotation, local_2[i])
+
+            for i in range(0, 3):
+                if not np.any(global_1[i]):
+                    break
+                else:
+                    distance = np.array([10., 10., 10.])
+                    for j in range(0, 3):
+                        if found[j]:
+                            continue
+                        else:
+                            if not np.any(global_2[j]):
+                                break
+                            else:
+                                print("Pozicija 1 kamera = {}\nPozicija 1 objekt = {}".format(self.wii_1_pose, global_1[i]))
+                                print("Pozicija 2 kamera = {}\nPozicija 2 objekt = {}".format(self.wii_2_pose, global_2[j]))
+                                point1[j], point2[j], distance[j] = \
+                                    self.line_distance(self.wii_1_pose, global_1[i],
+                                                       self.wii_2_pose, global_2[j])
+                    index = distance.argmin()
+                    print(index)
+                    self.detected_point[i].x = (point1[index][0] + point2[index][0]) / 2
+                    self.detected_point[i].y = (point1[index][1] + point2[index][1]) / 2
+                    self.detected_point[i].z = (point1[index][2] + point2[index][2]) / 2
+                    found[index] = True
+                    leds_detected += 1
+
+            if leds_detected == 1:
+                self.drone_coord = self.detected_point[0]
+            elif leds_detected == 2:
+                if self.detected_point[0].y < self.detected_point[1].y:
+                    front_index = 0
+                else:
+                    front_index = 1
+                self.drone_coord = self.detected_point[front_index]
+                self.drone_coord.x = self.drone_coord.x - 0.05
+                self.drone_coord.y = self.drone_coord.y + 0.1
+            elif leds_detected == 3:
+                self.drone_coord = self.detected_point[0]
+            else:
+                self.drone_coord = Vector3(0., 0., 0.)
+
+            self.drone_position.publish(self.drone_coord)
 
 
 if __name__ == "__main__":
