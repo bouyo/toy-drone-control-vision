@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+
 def set_camera(rot):
     a = rot[0]
     b = rot[1]
@@ -98,8 +99,10 @@ cam2_rot = np.array([[1, 0, 0],
                      [0, 1, 0],
                      [0, 0, 1]])
 
-cam1_angle = np.array([np.deg2rad(132), np.deg2rad(-15), np.deg2rad(180)])
-cam2_angle = np.array([np.deg2rad(140), np.deg2rad(20), np.deg2rad(178)])
+tilt1 = np.array([42, -15, 0])
+tilt2 = np.array([50, 20, -2])
+cam1_angle = np.array([np.deg2rad(90 + tilt1[0]), np.deg2rad(tilt1[1]), np.deg2rad(180 + tilt1[2])])
+cam2_angle = np.array([np.deg2rad(90 + tilt2[0]), np.deg2rad(tilt2[1]), np.deg2rad(180 + tilt2[2])])
 
 # set the rotation matrix for each wii
 cam1_rot = set_camera(cam1_angle)

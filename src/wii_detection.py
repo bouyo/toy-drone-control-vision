@@ -6,20 +6,26 @@ import numpy as np
 from geometry_msgs.msg import Vector3
 from wiimote.msg import State
 from wiimote.msg import IrSourceInfo
+from sensor_msgs.msg import Imu
 
 
 class WiiDetection:
 
     def __init__(self):
 
+        self.measured_angle = True
+
         self.wii1_detected = False
         self.wii2_detected = False
 
         # CONSTANT DEFINITIONS
+        self.g = 9.80665
         self.pix_width = 1024
         self.pix_height = 768
 
         # camera position in meters
+        self.wii_1_acc = Vector3(0., 0., 0.)
+        self.wii_2_acc = Vector3(0., 0., 0.)
         self.wii_1_pose = np.array([0.585, -1.68, 1.885])
         self.wii_2_pose = np.array([-0.585, -1.68, 1.885])
 
@@ -67,6 +73,16 @@ class WiiDetection:
             State,
             self.wii_cb2)
 
+        self.wii_acceleration1 = rospy.Subscriber(
+            "/imu/data1",
+            Imu,
+            self.wii_acc1)
+
+        self.wii_acceleration2 = rospy.Subscriber(
+            "/imu/data2",
+            Imu,
+            self.wii_acc2)
+
         self.drone_position = rospy.Publisher(
             'drone_position',
             Vector3)
@@ -108,6 +124,12 @@ class WiiDetection:
         for i in range(0, 3):
             self.wii_2_pixs[i][0] = detect_array[i].x
             self.wii_2_pixs[i][1] = detect_array[i].y
+
+    def wii_acc1(self, data):
+        self.wii_1_acc = data.linear_acceleration
+
+    def wii_acc2(self, data):
+        self.wii_2_acc = data.linear_acceleration
 
     def pix2vect(self, u, v):
         """
@@ -174,6 +196,17 @@ class WiiDetection:
             rospy.sleep(1)
 
         print("WiiDetection.run() - Starting position calculation")
+
+        if self.measured_angle:
+
+            self.camera_1_rot[0] = np.pi/2 + np.arcsin(self.wii_1_acc.y / self.g)
+            self.camera_1_rot[2] = (np.pi * 3/2) - np.arccos(self.wii_1_acc.x / self.g)
+
+            self.camera_2_rot[0] = np.pi/2 + np.arcsin(self.wii_2_acc.y / self.g)
+            self.camera_2_rot[2] = (np.pi * 3/2) - np.arccos(self.wii_2_acc.x / self.g)
+
+            self.wii_1_rotation = self.set_camera(self.camera_1_rot)
+            self.wii_2_rotation = self.set_camera(self.camera_2_rot)
 
         while not rospy.is_shutdown():
             self.rate.sleep()
