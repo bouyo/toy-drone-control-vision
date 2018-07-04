@@ -6,7 +6,7 @@ import numpy as np
 from geometry_msgs.msg import Vector3
 from wiimote.msg import State
 from wiimote.msg import IrSourceInfo
-
+from sensor_msgs.msg import Imu
 
 class WiiNode:
 
@@ -45,6 +45,16 @@ class WiiNode:
             'drone_position2',
             IrSourceInfo)
 
+        self.wii_acceleration1 = rospy.Subscriber(
+            "/imu/data1",
+            Imu,
+            self.wii_acc1)
+
+        self.wii_acceleration2 = rospy.Subscriber(
+            "/imu/data2",
+            Imu,
+            self.wii_acc2)
+
         # Detection rate
         self.detection_rate = 1
         self.rate = rospy.Rate(self.detection_rate)
@@ -64,6 +74,14 @@ class WiiNode:
             self.wii_2_pixs[i][0] = detect_array[i].x
             self.wii_2_pixs[i][1] = detect_array[i].y
             self.wii_2_pixs[i][2] = detect_array[i].ir_size
+
+    def wii_acc1(self, data):
+        self.wii1_detected = True
+        self.detect_acceleration1 = data.linear_acceleration
+
+    def wii_acc2(self, data):
+        self.wii1_detected = True
+        self.detect_acceleration2 = data.linear_acceleration
 
     def pix2vect(self, u, v):
         """
@@ -130,7 +148,7 @@ class WiiNode:
             rospy.sleep(1)
 
         print("WiiDetection.run() - Starting position calculation")
-
+        print()
         while not rospy.is_shutdown():
             self.rate.sleep()
 
