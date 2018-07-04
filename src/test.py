@@ -1,6 +1,10 @@
 import numpy as np
+import time
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib
+
+matplotlib.interactive(True)
 
 
 def set_camera(rot):
@@ -154,9 +158,14 @@ for i in range(0, 2):
     point2[i] = point2[index]
     found[index] = True
 
+plt.ion()
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-"""
+
+ax.set_xlabel('x axis')
+ax.set_ylabel('y axis')
+ax.set_zlabel('z axis')
+
 ax.plot3D(np.array([cam1_pose[0], glob1[0][0]]), np.array([cam1_pose[1], glob1[0][1]]),
           np.array([cam1_pose[2], glob1[0][2]]))
 ax.plot3D(np.array([cam1_pose[0], glob1[1][0]]), np.array([cam1_pose[1], glob1[1][1]]),
@@ -166,7 +175,11 @@ ax.plot3D(np.array([cam2_pose[0], glob2[0][0]]), np.array([cam2_pose[1], glob2[0
           np.array([cam2_pose[2], glob2[0][2]]))
 ax.plot3D(np.array([cam2_pose[0], glob2[1][0]]), np.array([cam2_pose[1], glob2[1][1]]),
           np.array([cam2_pose[2], glob2[1][2]]), c='r')
-"""
+
+plt.draw()
+
+time.sleep(2.)
+
 ax.plot3D(np.array([cam1_pose[0], point1[0][0]]), np.array([cam1_pose[1], point1[0][1]]),
           np.array([cam1_pose[2], point1[0][2]]))
 ax.plot3D(np.array([cam1_pose[0], point1[1][0]]), np.array([cam1_pose[1], point1[1][1]]),
@@ -185,8 +198,6 @@ ax.scatter(point2[0][0], point2[0][1], point2[0][2])
 ax.scatter(point1[1][0], point1[1][1], point1[1][2])
 ax.scatter(point2[1][0], point2[1][1], point2[1][2])
 
-ax.set_xlabel('x axis')
-ax.set_ylabel('y axis')
-ax.set_zlabel('z axis')
-plt.show()
+plt.draw()
+time.sleep(2.)
 
