@@ -35,8 +35,8 @@ def pix2vect(u, v):
     :return: vector end  in camera local coords
     """
 
-    alpha = np.deg2rad(((1024 / 2) - u) * 0.043)
-    beta = np.deg2rad((v - (768 / 2)) * 0.05)
+    alpha = np.deg2rad(((1024 / 2) - u) * 0.04474)
+    beta = np.deg2rad((v - (768 / 2)) * 0.04474)
     x = np.sin(alpha) * np.cos(beta)
     z = np.cos(alpha) * np.cos(beta)
     y = np.sin(beta)
@@ -85,33 +85,22 @@ def line_distance(a0, a1, b0, b1):
 
     return pA, pB, np.linalg.norm(pA - pB)
 
-def draw_lines(cam_pose, end_poses):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
 
-    ax.set_xlabel('x axis')
-    ax.set_ylabel('y axis')
-    ax.set_zlabel('z axis')
+def draw_lines(cam_pose, end_poses, axis, color='b'):
 
-    for i in range()
-    ax.plot3D(np.array([cam_pose[0], glob1[0][0]]), np.array([cam1_pose[1], glob1[0][1]]),
-              np.array([cam1_pose[2], glob1[0][2]]))
-    ax.plot3D(np.array([cam1_pose[0], glob1[1][0]]), np.array([cam1_pose[1], glob1[1][1]]),
-              np.array([cam1_pose[2], glob1[1][2]]), c='r')
+    axis.set_xlabel('x axis')
+    axis.set_ylabel('y axis')
+    axis.set_zlabel('z axis')
 
-    ax.plot3D(np.array([cam2_pose[0], glob2[0][0]]), np.array([cam2_pose[1], glob2[0][1]]),
-              np.array([cam2_pose[2], glob2[0][2]]))
-    ax.plot3D(np.array([cam2_pose[0], glob2[1][0]]), np.array([cam2_pose[1], glob2[1][1]]),
-              np.array([cam2_pose[2], glob2[1][2]]), c='r')
-
-    plt.show()
+    for x in range(0, len(end_poses)):
+        axis.plot3D(np.array([cam_pose[0], end_poses[x][0]]), np.array([cam_pose[1], end_poses[x][1]]),
+                    np.array([cam_pose[2], end_poses[x][2]]), c=color)
+    return
 
 
-cam1_pix = np.array([[695, 262],
-                     [602, 285]])
+cam1_pix = np.array([[480, 46]])
 
-cam2_pix = np.array([[574, 404],
-                     [658, 430]])
+cam2_pix = np.array([[868, 140]])
 
 cam1_pose = np.array([0.585, -1.68, 1.885])
 cam2_pose = np.array([-0.585, -1.68, 1.885])
@@ -122,8 +111,8 @@ cam2_rot = np.array([[1, 0, 0],
                      [0, 1, 0],
                      [0, 0, 1]])
 
-tilt1 = np.array([42, -15, 0])
-tilt2 = np.array([50, 20, -2])
+tilt1 = np.array([51, -9, -2])
+tilt2 = np.array([57, 11, 2])
 cam1_angle = np.array([np.deg2rad(90 + tilt1[0]), np.deg2rad(tilt1[1]), np.deg2rad(180 + tilt1[2])])
 cam2_angle = np.array([np.deg2rad(90 + tilt2[0]), np.deg2rad(tilt2[1]), np.deg2rad(180 + tilt2[2])])
 
@@ -137,33 +126,25 @@ loc1 = np.array([[-1., -1., -1.],
 loc2 = np.array([[-1., -1., -1.],
                  [-1., -1., -1.]])
 
-glob1 = np.array([[-1., -1., -1.],
-                  [-1., -1., -1.]])
-glob2 = np.array([[-1., -1., -1.],
-                  [-1., -1., -1.]])
+glob1 = np.array([[-1., -1., -1.]])
+glob2 = np.array([[-1., -1., -1.]])
 
-point1 = np.array([[-1., -1., -1.],
-                  [-1., -1., -1.]])
+point1 = np.array([[-1., -1., -1.]])
 
-point2 = np.array([[-1., -1., -1.],
-                  [-1., -1., -1.]])
+point2 = np.array([[-1., -1., -1.]])
 
-for i in range(0, 2):
+for i in range(0, 1):
     loc1[i] = pix2vect(cam1_pix[i][0], cam1_pix[i][1])
     glob1[i] = vect2coord(cam1_pose, cam1_rot, loc1[i])
-    print("Local {} cam 1 = {}".format(i, loc1))
-    print("Global {} cam 1 = {}".format(i, glob1[i]))
     loc2[i] = pix2vect(cam2_pix[i][0], cam2_pix[i][1])
     glob2[i] = vect2coord(cam2_pose, cam2_rot, loc2[i])
-    print("Local {} cam 2 = {}".format(i, loc2[i]))
-    print("Global {} cam 2 = {}".format(i, glob2[i]))
 
 detected = np.array([[-1., -1., -1],
                      [-1., -1., -1]])
 found = np.array([False, False])
-for i in range(0, 2):
+for i in range(0, 1):
     distance = np.array([10., 10., 10.])
-    for j in range(0, 2):
+    for j in range(0, 1):
         if found[j]:
             continue
         else:
@@ -177,36 +158,17 @@ for i in range(0, 2):
     point2[i] = point2[index]
     found[index] = True
 
+
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-
-ax.set_xlabel('x axis')
-ax.set_ylabel('y axis')
-ax.set_zlabel('z axis')
-
-ax.plot3D(np.array([cam1_pose[0], glob1[0][0]]), np.array([cam1_pose[1], glob1[0][1]]),
-          np.array([cam1_pose[2], glob1[0][2]]))
-ax.plot3D(np.array([cam1_pose[0], glob1[1][0]]), np.array([cam1_pose[1], glob1[1][1]]),
-          np.array([cam1_pose[2], glob1[1][2]]), c='r')
-
-ax.plot3D(np.array([cam2_pose[0], glob2[0][0]]), np.array([cam2_pose[1], glob2[0][1]]),
-          np.array([cam2_pose[2], glob2[0][2]]))
-ax.plot3D(np.array([cam2_pose[0], glob2[1][0]]), np.array([cam2_pose[1], glob2[1][1]]),
-          np.array([cam2_pose[2], glob2[1][2]]), c='r')
-
+draw_lines(cam1_pose, point1, ax, 'r')
+draw_lines(cam2_pose, point2, ax)
+ax.scatter(0.29, -0.95, 0.05)
 plt.show()
+print(point1)
+print(point2)
+
 """
-ax.plot3D(np.array([cam1_pose[0], point1[0][0]]), np.array([cam1_pose[1], point1[0][1]]),
-          np.array([cam1_pose[2], point1[0][2]]))
-ax.plot3D(np.array([cam1_pose[0], point1[1][0]]), np.array([cam1_pose[1], point1[1][1]]),
-          np.array([cam1_pose[2], point1[1][2]]), c='r')
-
-
-ax.plot3D(np.array([cam2_pose[0], point2[0][0]]), np.array([cam2_pose[1], point2[0][1]]),
-          np.array([cam2_pose[2], point2[0][2]]))
-ax.plot3D(np.array([cam2_pose[0], point2[1][0]]), np.array([cam2_pose[1], point2[1][1]]),
-          np.array([cam2_pose[2], point2[1][2]]), c='r')
-
 ax.scatter(0.37, -0.12, 0.08)
 ax.scatter(point1[0][0], point1[0][1], point1[0][2])
 ax.scatter(point2[0][0], point2[0][1], point2[0][2])

@@ -13,7 +13,7 @@ class WiiDetection:
 
     def __init__(self):
 
-        self.measured_angle = True
+        self.measured_angle = False
 
         self.wii1_detected = False
         self.wii2_detected = False
@@ -37,8 +37,14 @@ class WiiDetection:
                                        [0, 0, 0]])
 
         # camera coord rotation (z-y-x)
-        self.camera_1_rot = np.array([np.deg2rad(132), np.deg2rad(20), np.deg2rad(180)])
-        self.camera_2_rot = np.array([np.deg2rad(132), np.deg2rad(-20), np.deg2rad(180)])
+
+        tilt1 = np.array([50, -22, -2])
+        tilt2 = np.array([50, 23, 2])
+        #tilt1 = np.array([40, -18, 0])
+        #tilt2 = np.array([41, 21, 0])
+
+        self.camera_1_rot = np.array([np.deg2rad(90 + tilt1[0]), np.deg2rad(tilt1[1]), np.deg2rad(180 + tilt1[2])])
+        self.camera_2_rot = np.array([np.deg2rad(90 + tilt2[0]), np.deg2rad(tilt2[1]), np.deg2rad(180 + tilt2[2])])
 
         # set the rotation matrix for each wii
         self.wii_1_rotation = self.set_camera(self.camera_1_rot)
@@ -140,8 +146,8 @@ class WiiDetection:
         :return: vector end  in camera local coords
         """
 
-        alpha = np.deg2rad(((self.pix_width / 2) - u) * 0.043)
-        beta = np.deg2rad((v - (self.pix_height / 2)) * 0.05)
+        alpha = np.deg2rad(((self.pix_width / 2) - u) * 0.04474)
+        beta = np.deg2rad((v - (self.pix_height / 2)) * 0.04474)
         x = np.sin(alpha) * np.cos(beta)
         z = np.cos(alpha) * np.cos(beta)
         y = np.sin(beta)
@@ -237,7 +243,7 @@ class WiiDetection:
             point2 = np.array([[0., 0., 0.],
                               [0., 0., 0.],
                               [0., 0., 0.]])
-            distance = np.array([10., 10., 10.])
+
             found = np.array([False, False, False])
             leds_detected = 0
 
@@ -262,13 +268,11 @@ class WiiDetection:
                             if not np.any(global_2[j]):
                                 break
                             else:
-                                print("Pozicija 1 kamera = {}\nPozicija 1 objekt = {}".format(self.wii_1_pose, global_1[i]))
-                                print("Pozicija 2 kamera = {}\nPozicija 2 objekt = {}".format(self.wii_2_pose, global_2[j]))
                                 point1[j], point2[j], distance[j] = \
                                     self.line_distance(self.wii_1_pose, global_1[i],
                                                        self.wii_2_pose, global_2[j])
                     index = distance.argmin()
-                    print(index)
+                    print("Cam 1 detected pix = {}\nCam 2 detected pix = {}".format(point1[index], point2[index]))
                     self.detected_point[i].x = (point1[index][0] + point2[index][0]) / 2
                     self.detected_point[i].y = (point1[index][1] + point2[index][1]) / 2
                     self.detected_point[i].z = (point1[index][2] + point2[index][2]) / 2
