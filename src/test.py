@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib
 
-matplotlib.interactive(True)
-
 
 def set_camera(rot):
     a = rot[0]
@@ -87,6 +85,27 @@ def line_distance(a0, a1, b0, b1):
 
     return pA, pB, np.linalg.norm(pA - pB)
 
+def draw_lines(cam_pose, end_poses):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    ax.set_xlabel('x axis')
+    ax.set_ylabel('y axis')
+    ax.set_zlabel('z axis')
+
+    for i in range()
+    ax.plot3D(np.array([cam_pose[0], glob1[0][0]]), np.array([cam1_pose[1], glob1[0][1]]),
+              np.array([cam1_pose[2], glob1[0][2]]))
+    ax.plot3D(np.array([cam1_pose[0], glob1[1][0]]), np.array([cam1_pose[1], glob1[1][1]]),
+              np.array([cam1_pose[2], glob1[1][2]]), c='r')
+
+    ax.plot3D(np.array([cam2_pose[0], glob2[0][0]]), np.array([cam2_pose[1], glob2[0][1]]),
+              np.array([cam2_pose[2], glob2[0][2]]))
+    ax.plot3D(np.array([cam2_pose[0], glob2[1][0]]), np.array([cam2_pose[1], glob2[1][1]]),
+              np.array([cam2_pose[2], glob2[1][2]]), c='r')
+
+    plt.show()
+
 
 cam1_pix = np.array([[695, 262],
                      [602, 285]])
@@ -158,7 +177,6 @@ for i in range(0, 2):
     point2[i] = point2[index]
     found[index] = True
 
-plt.ion()
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
@@ -176,10 +194,8 @@ ax.plot3D(np.array([cam2_pose[0], glob2[0][0]]), np.array([cam2_pose[1], glob2[0
 ax.plot3D(np.array([cam2_pose[0], glob2[1][0]]), np.array([cam2_pose[1], glob2[1][1]]),
           np.array([cam2_pose[2], glob2[1][2]]), c='r')
 
-plt.draw()
-
-time.sleep(2.)
-
+plt.show()
+"""
 ax.plot3D(np.array([cam1_pose[0], point1[0][0]]), np.array([cam1_pose[1], point1[0][1]]),
           np.array([cam1_pose[2], point1[0][2]]))
 ax.plot3D(np.array([cam1_pose[0], point1[1][0]]), np.array([cam1_pose[1], point1[1][1]]),
@@ -197,7 +213,4 @@ ax.scatter(point2[0][0], point2[0][1], point2[0][2])
 
 ax.scatter(point1[1][0], point1[1][1], point1[1][2])
 ax.scatter(point2[1][0], point2[1][1], point2[1][2])
-
-plt.draw()
-time.sleep(2.)
-
+"""
