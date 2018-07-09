@@ -191,7 +191,7 @@ x_gain = np.array([0.00205549845837616, 0.0033167495854063, 0.00222222222222222,
 y_offset = np.array([-75, 79, 0])
 y_gain = np.array([0.0121951219512195, 0.027027027027027, 0.0666666666666667])
 
-a1 = np.hstack((cam1_pix[0], cam2_pix[0]))
+a1 = np.hstack((cam1_pix[1], cam2_pix[1]))
 print(a1)
 inputs = a1 - x_offset
 inputs = np.multiply(inputs, x_gain)
