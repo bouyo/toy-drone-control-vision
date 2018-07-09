@@ -5,6 +5,7 @@ import rospy
 import numpy as np
 from wiimote.msg import State
 from geometry_msgs.msg import Vector3
+import csv
 from visualization_msgs.msg import Marker
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -15,7 +16,10 @@ class WiiLocal:
 
     def __init__(self):
 
-        self.wii_detected = False
+        self.height = rospy.get_param("~h", "0")
+
+        self.wii_detected = True
+        self.data_stored = False
 
         # CONSTANT DEFINITIONS
         self.pix_width = 1024
@@ -27,6 +31,9 @@ class WiiLocal:
         self.wii_1_rotation = np.array([[0, 0, 0],
                                        [0, 0, 0],
                                        [0, 0, 0]])
+
+        self.pix1 = np.array([[]])
+        self.pix2 = np.array([[]])
 
         # camera coord rotation (z-y-x)
         self.camera_1_rot = np.array([np.deg2rad(90), np.deg2rad(0), np.deg2rad(180)])
@@ -43,6 +50,16 @@ class WiiLocal:
             State,
             self.wii_cb)
 
+        self.pix1_sub = rospy.Subscriber(
+            "pix1",
+            Vector3,
+            self.pix1_cb)
+
+        self.pix2_sub = rospy.Subscriber(
+            "pix2",
+            Vector3,
+            self.pix2_cb)
+
         self.local_pose = rospy.Publisher(
             'local_position',
             Vector3)
@@ -50,6 +67,24 @@ class WiiLocal:
         # Detection rate
         self.detection_rate = 2
         self.rate = rospy.Rate(self.detection_rate)
+
+        self.csvfile_1 = "cam1_h" + str(self.height) + ".csv"
+        self.csvfile_2 = "cam2_h" + str(self.height) + ".csv"
+        self.count = 0
+
+    def pix1_cb(self, data):
+        self.count += 1
+        if self.pix1.size == 0:
+            self.pix1 = np.array([data.x, data.y])
+        else:
+            self.pix1 = np.vstack((self.pix1, [data.x, data.y]))
+
+    def pix2_cb(self, data):
+        self.count += 1
+        if self.pix2.size == 0:
+            self.pix2 = np.array([data.x, data.y])
+        else:
+            self.pix2 = np.vstack((self.pix2, [data.x, data.y]))
 
     def set_camera(self, rot):
         a = rot[0]
@@ -146,7 +181,19 @@ class WiiLocal:
         while not rospy.is_shutdown():
 
             self.rate.sleep()
-            if self.wii_1_pixs[0] != -1:
+
+            if self.count == 28:
+                print(self.pix1)
+                print(self.pix2)
+                with open(self.csvfile_1, "w") as output:
+                    writer = csv.writer(output, lineterminator='\n')
+                    writer.writerows(self.pix1)
+
+                with open(self.csvfile_2, "w") as output:
+                    writer = csv.writer(output, lineterminator='\n')
+                    writer.writerows(self.pix2)
+
+            if self.wii_1_pixs[0] != -1 and self.data_stored:
                 local_1 = self.pix2vect(self.wii_1_pixs[0], self.wii_1_pixs[1])
                 glob_1 = self.vect2coord(self.wii_1_pose, self.wii_1_rotation, local_1)
                 vector = Vector3(glob_1[0], glob_1[1], glob_1[2])
