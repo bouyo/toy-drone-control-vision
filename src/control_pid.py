@@ -69,6 +69,12 @@ class DroneControl:
     def measurement_cb(self, data):
         self.pose_meas = data
 
+    def controller_dron_comm(self):
+        self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.mid_speed, self.mid_speed))
+        rospy.sleep(1)
+        self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.max_thrust), self.mid_speed)
+        rospy.sleep(1)
+
     def run(self):
         """ Run ROS node - computes PID algorithms for control """
 
@@ -77,6 +83,8 @@ class DroneControl:
             rospy.sleep(1)
 
         print("DroneControl.run() - Starting position control")
+        self.pose_ref = Quaternion(self.pose_meas.x, self.pose_meas.y, self.pose_meas.z, self.pose_meas.w)
+        self.controller_dron_comm()
         self.t_old = rospy.Time.now()
 
         while not rospy.is_shutdown():
