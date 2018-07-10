@@ -71,7 +71,7 @@ class DroneControl:
         self.rate = rospy.Rate(self.controller_rate)
 
     def setpoint_cb(self, data):
-        self.pose_ref = data
+        self.pose_ref = Quaternion(data.x, data.y, data.z, 0)
         self.speed = data.x
         self.ref_set = True
 
