@@ -164,6 +164,7 @@ class WiiDetection:
                 self.drone_coord = self.detected_point[front_index]
                 self.drone_coord.x = self.drone_coord.x - 0.05
                 self.drone_coord.y = self.drone_coord.y + 0.1
+
             elif leds_detected == 3:
                 self.drone_coord = self.detected_point[0]
             else:
