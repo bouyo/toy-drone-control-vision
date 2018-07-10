@@ -1,5 +1,5 @@
 #include <ros.h>
-#include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/Quaternion.h>
 
 //    VARIABLES
 // 0 - 255 values for clock time
@@ -16,20 +16,21 @@ uint8_t pin_yaw = 9;
 uint8_t pin_x = 10;
 uint8_t pin_y = 11;
 
-geometry_msgs::Vector3 drone_speed_msg;
+geometry_msgs::Quaternion drone_speed_msg;
 
 ros::NodeHandle  nh;
 
 // Subscriber callback function
-void droneInputCb( const geometry_msgs::Vector3& control_msg ){
+void droneInputCb( const geometry_msgs::Quaternion& control_msg ){
   vx = control_msg.x;
   vy = control_msg.y;
   vz = control_msg.z;
+  vyaw = control_msg.w;
 }
 
 // pubs and subs
 ros::Publisher droneSpeed("drone_speed", &drone_speed_msg);
-ros::Subscriber<geometry_msgs::Vector3> droneInputSub("control/drone_input", droneInputCb );
+ros::Subscriber<geometry_msgs::Quaternion> droneInputSub("control/drone_input", droneInputCb );
 
 void setup() {
 
@@ -49,6 +50,7 @@ void loop() {
   drone_speed_msg.x = vx;
   drone_speed_msg.y = vy;
   drone_speed_msg.z = vz;
+  drone_speed_msg.w = vyaw;
   droneSpeed.publish( &drone_speed_msg );
   nh.spinOnce();
   analogWrite(pin_thrust, (int)vz);
