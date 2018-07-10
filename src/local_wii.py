@@ -34,6 +34,7 @@ class WiiLocal:
 
         self.pix1 = np.array([[]])
         self.pix2 = np.array([[]])
+        self.pose = np.array([[]])
 
         # camera coord rotation (z-y-x)
         self.camera_1_rot = np.array([np.deg2rad(90), np.deg2rad(0), np.deg2rad(180)])
@@ -49,6 +50,11 @@ class WiiLocal:
             "wiimote/state",
             State,
             self.wii_cb)
+
+        self.drone_pos = rospy.Subscriber(
+            "drone_position",
+            Vector3,
+            self.pose_cb)
 
         self.pix1_sub = rospy.Subscriber(
             "pix1",
@@ -70,7 +76,15 @@ class WiiLocal:
 
         self.csvfile_1 = "cam1_h" + str(self.height) + ".csv"
         self.csvfile_2 = "cam2_h" + str(self.height) + ".csv"
+        self.csvfile_pose = "trajectory.csv"
         self.count = 0
+
+    def pose_cb(self, data):
+        self.count += 1
+        if self.pose.size == 0:
+            self.pose = np.array([data.x, data.y, data.z])
+        else:
+            self.pose = np.vstack((self.pose, [data.x, data.y, data.z]))
 
     def pix1_cb(self, data):
         self.count += 1
@@ -181,7 +195,7 @@ class WiiLocal:
         while not rospy.is_shutdown():
 
             self.rate.sleep()
-
+            """
             if self.count == 28:
                 print(self.pix1)
                 print(self.pix2)
@@ -192,6 +206,12 @@ class WiiLocal:
                 with open(self.csvfile_2, "w") as output:
                     writer = csv.writer(output, lineterminator='\n')
                     writer.writerows(self.pix2)
+            """
+            if self.count > 30:
+                rospy.sleep(1)
+                with open(self.csvfile_pose, "w") as output:
+                    writer = csv.writer(output, lineterminator='\n')
+                    writer.writerows(self.pose)
 
             if self.wii_1_pixs[0] != -1 and self.data_stored:
                 local_1 = self.pix2vect(self.wii_1_pixs[0], self.wii_1_pixs[1])
