@@ -124,6 +124,8 @@ class DroneControl:
             self.drone_input.publish(self.key_speed)
             self.toggle_speed.publish(self.speed)
 
+        self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.min_speed, self.mid_speed))
+
 
 if __name__ == "__main__":
     rospy.init_node("drone_control")

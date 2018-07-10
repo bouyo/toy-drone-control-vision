@@ -22,13 +22,12 @@ class DroneControl:
 
         self.u = Quaternion(self.mid_speed, self.mid_speed, self.min_speed, self.mid_speed)
 
-        self.pid_x = PID(1, 0, 0, self.max_side - self.mid_speed, self.mid_speed - self.min_speed)
-        self.pid_y = PID(1, 0, 0, self.max_side - self.mid_speed, self.mid_speed - self.min_speed)
+        self.pid_x = PID(1, 0, 0, self.max_side - self.mid_speed, self.min_speed - self.mid_speed)
+        self.pid_y = PID(1, 0, 0, self.max_side - self.mid_speed, self.min_speed - self.mid_speed)
         self.pid_z = PID(1, 0, 0, self.max_thrust - self.min_speed, self.min_speed)
-        self.pid_yaw = PID(1, 0, 0, self.max_side - self.mid_speed, self.mid_speed - self.min_speed)
+        self.pid_yaw = PID(1, 0, 0, self.max_side - self.mid_speed, self.min_speed - self.mid_speed)
 
         self.ref_set = False
-        self.speed = 0
         self.pose_ref = Quaternion(0., 0., 0., math.pi/2)
         self.pose_meas = Quaternion(-1., -1., -1., -1.)
 
@@ -53,17 +52,13 @@ class DroneControl:
             Quaternion,
             queue_size=10)
 
-        self.toggle_speed = rospy.Publisher(
-            'toggle_speed',
-            UInt16)
-
         self.error_pub = rospy.Publisher(
             'pose_error',
             Float64,
             queue_size=10)
 
         # Controller rate
-        self.controller_rate = 50
+        self.controller_rate = 10
         self.rate = rospy.Rate(self.controller_rate)
         self.controller_info = rospy.get_param("~verbose", False)
 
@@ -73,12 +68,6 @@ class DroneControl:
 
     def measurement_cb(self, data):
         self.pose_meas = data
-
-    def controller_dron_comm(self):
-        self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.mid_speed, self.mid_speed))
-        rospy.sleep(1)
-        self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.max_thrust, self.mid_speed))
-        rospy.sleep(1)
 
     def run(self):
         """ Run ROS node - computes PID algorithms for control """
@@ -90,7 +79,6 @@ class DroneControl:
         print("DroneControl.run() - Starting position control")
         self.t_old = rospy.Time.now()
 
-        self.controller_dron_comm()
         while not rospy.is_shutdown():
             self.rate.sleep()
 
@@ -105,7 +93,7 @@ class DroneControl:
             self.t_old = t
 
             # HEIGHT CONTROL
-            self.u.z = self.pid_x.compute(self.pose_ref.x, self.pose_meas.x, dt) + self.mid_speed
+            self.u.z = self.pid_x.compute(self.pose_ref.x, self.pose_meas.x, dt)
 
             # PITCH CONTROL OUTER LOOP
             # x - position control
@@ -116,14 +104,14 @@ class DroneControl:
             self.u.y = self.pid_y.compute(self.pose_ref.y, self.pose_meas.y, dt) + self.mid_speed
 
             # PITCH AND ROLL YAW ADJUSTMENT
-            roll_sp_2 = math.cos(self.pose_meas.w) * self.u.y + \
-                        math.sin(self.pose_meas.w) * self.u.x
-            self.u.y = math.cos(self.pose_meas.w) * self.u.x - \
-                       math.sin(self.pose_meas.w) * self.u.y
+            roll_sp_2 = math.cos(self.pose_meas.w) * self.u.x + \
+                        math.sin(self.pose_meas.w) * self.u.y
+            self.u.y = math.cos(self.pose_meas.w) * self.u.y - \
+                       math.sin(self.pose_meas.w) * self.u.x
             self.u.x = roll_sp_2
 
             # YAW CONTROL
-            error_yrc = self.pose_ref.w - self.pose_meas.w
+            #error_yrc = self.pose_ref.w - self.pose_meas.w
             #if math.fabs(error_yrc) > math.pi:
             #    self.pose_ref.w = (self.pose_meas.w / math.fabs(self.pose_meas.w)) * \
             #                      (2 * math.pi - math.fabs(self.pose_ref.w))
@@ -154,7 +142,6 @@ class DroneControl:
                       "Error: {}\n".format(self.u.x, self.u.y, self.u.w, error))
 
             self.drone_input.publish(self.u)
-            self.toggle_speed.publish(self.u)
 
 
 
