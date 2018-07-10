@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <!-- Serial communication node for arduino -->
+	<node
+		pkg="rosserial_python"
+		type="serial_node.py"
+		name="serial_comm"
+		output="screen">
+
+		<param name="port" value="/dev/ttyUSB0" />
+    </node>
+
+	<!-- Keyboard listener node -->
+	<node
+		pkg="diplomski"
+		type="keyboard.py"
+		name="keyboard_listener"
+		output="screen">
+
+		<param name="print" value="False" />
+	</node>
+
+    <!-- Control node -->
+    <node
+        pkg="diplomski"
+        type="control.py"
+        name="control"
+        output="screen">
+
+    </node>
+
+</launch>
