@@ -56,9 +56,9 @@ class WiiDetection:
                                    [-1., -1.],
                                    [-1., -1.]])
 
-        self.detected_point = np.array([Vector3(0., 0., 0.),
-                                        Vector3(0., 0., 0.),
-                                        Vector3(0., 0., 0.)])
+        self.detected_point = np.array([Quaternion(-1., -1., -1., -np.pi / 2),
+                                        Quaternion(-1., -1., -1., -np.pi / 2),
+                                        Quaternion(-1., -1., -1., -np.pi / 2)])
         self.drone_coord = Quaternion(0., 0., 0., 0.)
 
         # SUBS N PUBS
@@ -77,7 +77,7 @@ class WiiDetection:
             Quaternion)
 
         # Detection rate
-        self.detection_rate = 10
+        self.detection_rate = 5
         self.rate = rospy.Rate(self.detection_rate)
 
     def wii_cb1(self, data):
@@ -174,7 +174,7 @@ class WiiDetection:
             elif leds_detected == 3:
                 self.drone_coord = self.detected_point[0]
             else:
-                self.drone_coord = Vector3(0., 0., 0.)
+                self.drone_coord = Quaternion(-1., -1., -1., -np.pi/2)
 
             self.drone_position.publish(self.drone_coord)
 
