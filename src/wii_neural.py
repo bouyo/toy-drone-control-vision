@@ -3,7 +3,7 @@
 
 import rospy
 import numpy as np
-from geometry_msgs.msg import Vector3
+from geometry_msgs.msg import Vector3, Quaternion
 from wiimote.msg import State
 from wiimote.msg import IrSourceInfo
 
@@ -59,7 +59,7 @@ class WiiDetection:
         self.detected_point = np.array([Vector3(0., 0., 0.),
                                         Vector3(0., 0., 0.),
                                         Vector3(0., 0., 0.)])
-        self.drone_coord = Vector3(0., 0., 0.)
+        self.drone_coord = Quaternion(0., 0., 0., 0.)
 
         # SUBS N PUBS
         self.wii_subscriber1 = rospy.Subscriber(
@@ -74,7 +74,7 @@ class WiiDetection:
 
         self.drone_position = rospy.Publisher(
             'drone_position',
-            Vector3)
+            Quaternion)
 
         # Detection rate
         self.detection_rate = 10
@@ -136,9 +136,9 @@ class WiiDetection:
         while not rospy.is_shutdown():
             self.rate.sleep()
 
-            self.detected_point = np.array([Vector3(0., 0., 0.),
-                                            Vector3(0., 0., 0.),
-                                            Vector3(0., 0., 0.)])
+            self.detected_point = np.array([Quaternion(-1., -1., -1., -np.pi/2),
+                                            Quaternion(-1., -1., -1., -np.pi/2),
+                                            Quaternion(-1., -1., -1., -np.pi/2)])
 
             point = np.array([[0., 0., 0.],
                               [0., 0., 0.],
@@ -159,11 +159,17 @@ class WiiDetection:
             elif leds_detected == 2:
                 if self.detected_point[0].y < self.detected_point[1].y:
                     front_index = 0
+                    back_index = 1
                 else:
                     front_index = 1
+                    back_index = 0
                 self.drone_coord = self.detected_point[front_index]
                 self.drone_coord.x = self.drone_coord.x - 0.05
                 self.drone_coord.y = self.drone_coord.y + 0.1
+                x1 = self.detected_point[front_index].x
+                x2 = self.detected_point[back_index].x
+                angle = -np.arccos((x1 - x2)/18)
+                self.drone_coord.w = angle
 
             elif leds_detected == 3:
                 self.drone_coord = self.detected_point[0]
