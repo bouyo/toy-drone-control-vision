@@ -4,7 +4,6 @@
 import rospy
 import math
 import numpy as np
-from geometry_msgs.msg import Vector3
 from geometry_msgs.msg import Quaternion
 from std_msgs.msg import UInt16
 from pid import PID
@@ -21,18 +20,17 @@ class DroneControl:
         self.min_speed = 0.0
         self.mid_speed = 92.0
 
-        self.u_speed = Quaternion(self.mid_speed, self.mid_speed, self.mid_speed, self.mid_speed)
+        self.u = Quaternion(self.mid_speed, self.mid_speed, self.min_speed, self.mid_speed)
 
         self.pid_x = PID(1, 0, 0, self.max_side - self.mid_speed, self.mid_speed - self.min_speed)
         self.pid_y = PID(1, 0, 0, self.max_side - self.mid_speed, self.mid_speed - self.min_speed)
-        self.pid_z = PID(1, 0, 0, self.max_thrust - self.mid_speed, self.mid_speed - self.min_speed)
+        self.pid_z = PID(1, 0, 0, self.max_thrust - self.min_speed, self.min_speed)
         self.pid_yaw = PID(1, 0, 0, self.max_side - self.mid_speed, self.mid_speed - self.min_speed)
 
         self.ref_set = False
         self.speed = 0
-        self.pose_ref = Quaternion(0., 0., 0., 0.)
-        self.pose_meas = Quaternion(0., 0., 0., 0.)
-        self.u = Quaternion(0., 0., 0., 0.)
+        self.pose_ref = Quaternion(0., 0., 0., math.pi/2)
+        self.pose_meas = Quaternion(-1., -1., -1., -1.)
 
         # initialize subscribers
         self.pose_subscriber = rospy.Subscriber(
@@ -64,8 +62,6 @@ class DroneControl:
             Float64,
             queue_size=10)
 
-
-
         # Controller rate
         self.controller_rate = 50
         self.rate = rospy.Rate(self.controller_rate)
@@ -73,7 +69,6 @@ class DroneControl:
 
     def setpoint_cb(self, data):
         self.pose_ref = data
-        self.speed = data.x
         self.ref_set = True
 
     def measurement_cb(self, data):
@@ -129,9 +124,9 @@ class DroneControl:
 
             # YAW CONTROL
             error_yrc = self.pose_ref.w - self.pose_meas.w
-            if math.fabs(error_yrc) > math.pi:
-                self.pose_ref.w = (self.pose_meas.w / math.fabs(self.pose_meas.w)) * \
-                                  (2 * math.pi - math.fabs(self.pose_ref.w))
+            #if math.fabs(error_yrc) > math.pi:
+            #    self.pose_ref.w = (self.pose_meas.w / math.fabs(self.pose_meas.w)) * \
+            #                      (2 * math.pi - math.fabs(self.pose_ref.w))
             self.u.w = self.pid_yaw.compute(self.pose_ref.w, self.pose_meas.w, dt)
 
             # Calculate position error
