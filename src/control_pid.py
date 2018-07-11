@@ -5,14 +5,17 @@ import rospy
 import math
 import numpy as np
 from geometry_msgs.msg import Quaternion
-from std_msgs.msg import UInt16
 from pid import PID
+from std_msgs.msg import UInt16, Float64
 from datetime import datetime
 
 
 class DroneControl:
 
     def __init__(self):
+        # key pressed speed increment
+        self.dx = 3
+        self.drone_prepared = False
 
         # max speed
         self.max_thrust = 179.0
@@ -42,6 +45,11 @@ class DroneControl:
             Quaternion,
             self.measurement_cb)
 
+        self.key_subscriber = rospy.Subscriber(
+            "keyboard",
+            UInt16,
+            self.keyboard_cb)
+
         self.drone_input = rospy.Publisher(
             'control/drone_input',
             Quaternion)
@@ -69,22 +77,47 @@ class DroneControl:
     def measurement_cb(self, data):
         self.pose_meas = data
 
+    def keyboard_cb(self, data):
+        self.drone_prepared = True
+        if data == 1:
+            current = [self.u.x, self.u.y, self.u.z, self.u.w]
+            for i in [0, 1, 3]:
+                if current[i] > self.mid_speed + self.dx / 2:
+                    current[i] = current[i] - self.dx
+                elif current[i] > self.mid_speed - self.dx / 2:
+                    current[i] = current[i] + self.dx
+                else:
+                    current[i] = self.mid_speed
+            if current[2] > self.min_speed + self.dx:
+                current[2] = current[2] - self.dx
+            else:
+                current[2] = self.min_speed
+            self.u = Quaternion(current[0], current[1], current[2], current[3])
+            self.drone_input.publish(self.u)
+            print("From keyboard new speed:\nx = {}\ny = {}\nz = {}\nyaw = {}"\
+                  .format(current[0], current[1], current[2], current[3]))
+
     def controller_dron_comm(self):
         self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.mid_speed, self.mid_speed))
         rospy.sleep(1)
-        self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.max_thrust), self.mid_speed)
+        self.drone_input.publish(Quaternion(self.mid_speed, self.mid_speed, self.max_thrust, self.mid_speed))
         rospy.sleep(1)
 
     def run(self):
-        """ Run ROS node - computes PID algorithms for control """
-
+        """ First measurement for first reference. """
         while not self.ref_set:
             print("DroneControl.run() - Waiting for first reference.")
             rospy.sleep(1)
 
+        """ Prepared drone """
+        self.controller_dron_comm()
+        while not self.drone_prepared:
+            print("DroneControl.run() - Waiting for drone prepared.")
+            rospy.sleep(1)
+
+        """ Run ROS node - computes PID algorithms for control """
         print("DroneControl.run() - Starting position control")
         self.pose_ref = Quaternion(self.pose_meas.x, self.pose_meas.y, self.pose_meas.z, self.pose_meas.w)
-        self.controller_dron_comm()
         self.t_old = rospy.Time.now()
 
         while not rospy.is_shutdown():
