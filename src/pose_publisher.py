@@ -19,15 +19,15 @@ class Keyboard:
         self.start_listener = False
         self.first_meas = True
         self.moveDrone = {
-            'w': (0., -1., 0., 0.),
-            's': (0., 1., 0., 0.),
-            'a': (1., 0., 0., 0.),
-            'd': (-1., 0., 0., 0.),
-            '8': (0., 0., 1., 0.),
-            '2': (0., 0., -1., 0.),
-            '4': (0., 0., 0., 1.),
-            '6': (0., 0., 0., -1.),
-}
+            'w': np.array([0, -1, 0, 0.]),
+            's': np.array([0., 1., 0., 0.]),
+            'a': np.array([1., 0., 0., 0.]),
+            'd': np.array([-1., 0., 0., 0.]),
+            '8': np.array([0., 0., 1., 0.]),
+            '2': np.array([0., 0., -1., 0.]),
+            '4': np.array([0., 0., 0., 1.]),
+            '6': np.array([0., 0., 0., -1.]),
+        }
 
         self.keys = ['w', 's', 'a', 'd', '8', '2', '4', '6']
 
@@ -38,7 +38,7 @@ class Keyboard:
 
     def measurement_cb(self, data):
         if self.first_meas:
-            self.old = [data.x, data.y, data.z, data.w]
+            self.key_command = data
             self.first_meas = True
 
     def on_press(self, key):
@@ -60,12 +60,8 @@ class Keyboard:
             if self.to_print:
                 print("Good key - Move drone")
 
-            x = self.moveDrone[key][0]
-            y = self.moveDrone[key][1]
-            z = self.moveDrone[key][2]
-            yaw = self.moveDrone[key][3]
-
-            self.old[0] = self.old[0] or x
+            for i in range(0, 4):
+                self.old[i] = np.add(self.old[i], self.moveDrone[key][i])
 
             self.pub.publish(Quaternion(self.old[0], self.old[1], self.old[2], self.old[3]))
 
